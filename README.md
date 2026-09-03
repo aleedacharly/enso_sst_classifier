@@ -1,39 +1,44 @@
-# ENSO Classification from Sea Surface Temperature Anomalies
-A Pytorch deep learning project classifying El Nino or Neutral months from ERSSTv5 SST anomalies.
+# ENSO Classification from Sea Surface Temperature Anomalies with PyTorch
 
-Dependencies:
+This project demonstrates that neural network can recognize a large scale climate pattern directly from a raw spatial field from gridded data alone. It is an excercise towards machine learning based climate pattern recognition and ENSO forecasting, which is an active research frontier where deep learning has recently used.
+
+## Background
+The El Niño–Southern Oscillation (ENSO) is the strongest year-to-year climate fluctuation on Earth. It consists of three phases : a warm phase (El Niño), a cold phase (La Niña), and a neutral state. This both have effects on droughts, floods, monsson shifts and hurricane activities across mutliple continents.
+Since ENSO is the distribution of warm water across equitorial Pacific, the signal is the SST. 
+## Data
+- SST : NOAA ERSSTv5 monthly sea surface temperature, 2°×2° global grid, read from netCDF with xarray
+- Labels: NOAA Oceanic Niño Index (ONI), 1950–present. Each month is labelled El Niño (ONI ≥ +0.5 °C), La Niña (ONI ≤ −0.5 °C), or Neutral (in between)
+
+## Method
+1. Anomalies
+2. Region: The map is cropped where the ENSO signal is concentrated.
+3. Temporal split: Using training data up to 2009 and testing data from 2010
+4. Models: used a feedforward model(with flattened map) and a small CNN( which preserves 2D spatial structure)
+
+## Results
+Model	|| Test accuracy	|| Notes
+Majority-class baseline||	45.2%	||Always predict "Neutral"
+Feedforward	||76.4%||	Balanced across classes (f1 0.74–0.80)
+CNN	|| 84.0%	|| Best overall; exploits spatial structure
+
+# Key Findings
+1. Both models have more than baseline value indicating they learn patterns rather than memorizing.
+2. Both models never had confusions with La Niña with El Niño
+3. CNN improved accuracy from 76% to 84%
+
+## Limitation and future directions
+1. It only predicts current ENSO phase not the months ahead
+2. NOAA have moved to ONI to RONI in 2026 accounting for background ocean-warming trend
+3. It is only approx. 720 training months.
+
+## Dependencies
 - xrray
 - netCDF4
 - numpy
 - pandas
 - matplotlib
 - torch
- ## Day 1
-**Goal** : classify each month as El Nino, La Nina and neutral from sea surface temperature.
-**Data** : NOAA ERSSTv5 monthly SST, 2°×2° global grid (a *reconstructed*
-gridded product, not raw observations), stored as netcdf, read with xarray, Longitude uses the 0–360° convention, so the Pacific sits mid-array.
-**Key Ideas** : raw SST is dominated by seasonal cycle which is far larger than ENSO signal. To expose ENSO, I removed the seasonal cycle for each grid cell and calender month, and subtracted that cell's average
-1991-2020 average for that month. And what remains is the anomaly which is the ENSO. I chose 1991-2020.
-**Verfication** : I plotted both Decembers of 1997 and 1999 confirming the signal is present.
 
-
-## Day 2 — Labels, Model, Training
-
-**Labels:** parsed NOAA ONI index (1950–2026), thresholded at ±0.5 °C into
-La Niña (0) / Neutral (1) / El Niño (2). Aligned to SST maps on the intersection
-of dates (919 shared months, since ONI runs past the SST record's end).
-
-**Input:** anomaly maps cropped to the tropical Pacific (30°S–30°N, 120–280°E),
-land cells (7.5%) filled with 0 (= "no anomaly", valid because these are anomalies).
-
-**Split:** by TIME, not randomly — train ≤2009, test ≥2010. Random splitting would
-leak information because adjacent months are correlated (ENSO events span many months),
-inflating accuracy dishonestly. Temporal split gives a defensible estimate.
-
-**Model:** feedforward net (2511→128→64→3), identical to the MNIST classifier except
-input and output sizes. Adam, CrossEntropyLoss, 30 epochs.
-
-**Result:** 76.4% test accuracy vs a 45.2% majority-class baseline. Crucially, the
-model NEVER confused La Niña with El Niño (it learned the sign of the anomaly);
-all errors were at the weak-event/Neutral boundary — the same ambiguity a human
-faces at the ±0.5 threshold. Balanced performance across classes (f1 0.74–0.80).
+## Data sources
+1. NOAA ERSSTv5: https://www.ncei.noaa.gov/products/extended-reconstructed-sst
+2. NOAA ONI (PSL): https://psl.noaa.gov/data/correlation/oni.data
